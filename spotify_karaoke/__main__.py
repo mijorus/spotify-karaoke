@@ -5,6 +5,7 @@ import pygame
 import os
 import multiprocessing
 import subprocess
+from time import time
 
 from spotify_karaoke.SpotifyImpl import SpotifyImpl
 from spotify_karaoke.Stems import Stems
@@ -40,6 +41,8 @@ def poll_playback():
 
     if SpotifyImpl.playback_state['is_playing']:
         SpotifyImpl.client.pause_playback()
+        
+    start = time()
 
     if not Track.has_loaded_successfully(isrc):
         TUI.display(status='Loading track...')
@@ -85,7 +88,8 @@ def poll_playback():
     SpotifyImpl.client.start_playback()
     
     if track_succesful:
-        TUI.display(status='✅ Loaded', 
+        elapsed = time() - start
+        TUI.display(status=f'✅ Loaded in {elapsed:.2f}s', 
             track_name=curr_track_name,
             scale=Track.get_config(isrc)['track']['scale'])
     
