@@ -1,13 +1,13 @@
-import spotipy
 import dotenv
-from spotipy.oauth2 import SpotifyOAuth
 import yt_dlp
 from time import sleep
-import demucs.separate
 import pygame
 import os
 import multiprocessing
 import subprocess
+
+from spotify_karaoke.SpotifyImpl import SpotifyImpl
+from spotify_karaoke.Stems import Stems
 
 dotenv.load_dotenv()
 pygame.mixer.init()
@@ -16,49 +16,6 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 storage_dir = os.getenv('APP_STORAGE', os.path.join(current_dir, '..', 'storage'))
 tracks_dir = os.path.join(storage_dir, 'tracks')
 scopes = "app-remote-control,streaming,user-read-playback-state,user-modify-playback-state,user-read-currently-playing"
-
-class SpotifyImpl():
-    playback_state = None
-    is_playing_track = None
-    client: spotipy.Spotify = None
-
-    @staticmethod
-    def init():
-        if not SpotifyImpl.client:
-            SpotifyImpl.client = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scopes))
-
-    @staticmethod
-    def refresh_playback_state():
-        playback_state = SpotifyImpl.client.current_playback()
-        SpotifyImpl.playback_state = playback_state
-        SpotifyImpl.is_playing_track = (playback_state and playback_state['is_playing'] \
-                                        and playback_state['currently_playing_type'] == 'track')
-
-
-class Stems():
-    vocals = None
-    no_vocals = None
-
-    @staticmethod
-    def play_stems(track_name: str):
-        print('Playing audio...')
-
-        Stems.vocals = pygame.mixer.Sound(os.path.join(tracks_dir, 'separated', 'htdemucs', track_name, 'vocals.mp3'))
-        Stems.no_vocals = pygame.mixer.Sound(os.path.join(tracks_dir, 'separated', 'htdemucs', track_name, 'no_vocals.mp3'))
-
-        Stems.vocals.set_volume(0.1)
-
-        Stems.vocals.play()
-        Stems.no_vocals.play()
-
-    @staticmethod
-    def stop_stems():
-        if Stems.vocals:
-            Stems.vocals.stop()
-
-        if Stems.no_vocals:
-            Stems.no_vocals.stop()
-
 
 def download_song(query):
     target_file = os.path.join(tracks_dir, f'{query}.mp3')
@@ -109,9 +66,6 @@ def poll_playback():
         sleep(2)
         SpotifyImpl.refresh_playback_state()
 
-    # load_track_process = multiprocessing.Process(target=load_new_track)
-    # load_track_process.start()
-
     isrc = SpotifyImpl.playback_state['item']['external_ids'].get('isrc')
     curr_track_id = SpotifyImpl.playback_state['item']['id']
 
@@ -138,12 +92,12 @@ def poll_playback():
 
             poll_playback()
             return
+        
+    if SpotifyImpl.playback_state['is_playing']:
+        SpotifyImpl.client.pause_playback()
     
     SpotifyImpl.client.seek_track(1)
-    SpotifyImpl.refresh_playback_state()
-
-    if not SpotifyImpl.playback_state['is_playing']:
-        SpotifyImpl.client.start_playback()
+    SpotifyImpl.client.start_playback()
 
     print(f'Playing {isrc}')
     Stems.play_stems(track_name=isrc)
