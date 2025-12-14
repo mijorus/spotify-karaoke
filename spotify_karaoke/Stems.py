@@ -15,6 +15,7 @@ class Stems():
         Stems.no_vocals = pygame.mixer.Sound(os.path.join(separated_tracks_subdir, track_name, 'no_vocals.mp3'))
 
         Stems.vocals.set_volume(0.1)
+        Stems.no_vocals.set_volume(0.4)
 
         Stems.vocals.play()
         Stems.no_vocals.play()

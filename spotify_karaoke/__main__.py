@@ -40,7 +40,7 @@ def poll_playback():
         return
 
     if SpotifyImpl.playback_state['is_playing']:
-        SpotifyImpl.client.pause_playback()
+        SpotifyImpl.force_pause()
         
     start = time()
 

@@ -117,14 +117,15 @@ class Track():
         if not os.path.exists(
             os.path.join(tracks_dir, 'separated', 'htdemucs', isrc)
         ) and os.path.isfile(target_file):
-            TUI.display(status='Separating track...')
+            scale = Track.estimate_key_advanced(isrc)
+            TUI.display(status='Separating track...', scale=scale)
             device = 'cpu'
             
             if torch.backends.mps.is_available():
                 device = 'mps'
             
             subprocess.run(['python3', '-m', 'demucs', "--mp3", "--two-stems", "vocals", "--shifts", "1", 
-                target_file, '--out', separated_tracks_dir, '--device', device],
+                target_file, '--out', separated_tracks_dir, '--device', device, '--mp3-preset', '4'],
                 # stdout=subprocess.PIPE,
                 # stderr=subprocess.PIPE,
                 check=True
