@@ -1,19 +1,26 @@
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
-from spotipy.oauth2 import CacheFileHandler
+
+from spotify_karaoke.constants import scopes
 
 
 class SpotifyImpl():
     playback_state = None
     is_playing_track = None
     client: spotipy.Spotify = None
+    
+    @staticmethod
+    def force_pause():
+        try:
+            SpotifyImpl.client.pause_playback()
+        except:
+            pass
 
     @staticmethod
     def init():
         if not SpotifyImpl.client:
             SpotifyImpl.client = spotipy.Spotify(auth_manager=SpotifyOAuth(
-                scope=scopes,
-                cache_handler=CacheFileHandler))
+                scope=scopes))
 
     @staticmethod
     def refresh_playback_state():

@@ -1,16 +1,18 @@
 import pygame
 import os
 
+from spotify_karaoke.constants import tracks_dir, separated_tracks_subdir
+
 class Stems():
     vocals = None
     no_vocals = None
 
     @staticmethod
     def play_stems(track_name: str):
-        print('Playing audio...')
+        print('🔉 Playing audio...')
 
-        Stems.vocals = pygame.mixer.Sound(os.path.join(tracks_dir, 'separated', 'htdemucs', track_name, 'vocals.mp3'))
-        Stems.no_vocals = pygame.mixer.Sound(os.path.join(tracks_dir, 'separated', 'htdemucs', track_name, 'no_vocals.mp3'))
+        Stems.vocals = pygame.mixer.Sound(os.path.join(separated_tracks_subdir, track_name, 'vocals.mp3'))
+        Stems.no_vocals = pygame.mixer.Sound(os.path.join(separated_tracks_subdir, track_name, 'no_vocals.mp3'))
 
         Stems.vocals.set_volume(0.1)
 
