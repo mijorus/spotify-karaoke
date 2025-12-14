@@ -99,7 +99,7 @@ class Track():
 
         if (not os.path.isfile(target_file)):
             ydl_opts = {
-                'quiet': True,
+                # 'quiet': True,
                 'format': 'bestaudio/best',
                 'outtmpl': os.path.join(tracks_dir, f'{isrc}.%(ext)s'),
                 'postprocessors': [{
@@ -125,8 +125,8 @@ class Track():
             
             subprocess.run(['python3', '-m', 'demucs', "--mp3", "--two-stems", "vocals", "--shifts", "1", 
                 target_file, '--out', separated_tracks_dir, '--device', device],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                # stdout=subprocess.PIPE,
+                # stderr=subprocess.PIPE,
                 check=True
             )
 

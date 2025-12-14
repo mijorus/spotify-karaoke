@@ -46,7 +46,7 @@ def poll_playback():
 
         load_track_process = multiprocessing.Process(
             target=Track.load,
-            args=('asdasdasdasdasdad',)
+            args=(isrc,)
         )
 
         load_track_process.start()
@@ -109,6 +109,8 @@ def poll_playback():
     poll_playback()
 
 def main():
+    TUI.start()
+    
     if not os.path.exists(storage_dir):
         os.mkdir(storage_dir)
     
