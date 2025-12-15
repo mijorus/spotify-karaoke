@@ -111,14 +111,12 @@ class Track():
             }
 
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                State.update_state(status='Downloading track...')
                 ydl.download([f'ytsearch1:"{isrc}"'])
 
 
         if not os.path.exists(
             os.path.join(tracks_dir, 'separated', 'htdemucs', isrc)
         ) and os.path.isfile(target_file):
-            State.update_state(status='Separating track...')
             device = 'cpu'
             
             if torch.backends.mps.is_available():

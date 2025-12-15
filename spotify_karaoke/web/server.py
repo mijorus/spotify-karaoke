@@ -14,20 +14,27 @@ def index():
 
 @app.route('/storage/<path:filename>')
 def serve_storage(filename):
+    print(filename)
     return send_from_directory(storage_dir, filename)
+    
+@app.route('/state')
+def serve_state():
+    return send_from_directory(storage_dir, 'state.json')
 
-@socketio.on('connect')
-def handle_connect():
-    print('Client connected')
-    emit('track_change',  dict(State.state), broadcast=True)
 
-@socketio.on('disconnect')
-def handle_disconnect():
-    print('Client disconnected')
+# @socketio.on('connect')
+# def handle_connect():
+#     print('Client connected')
+#     emit('track_change',  dict(State.state), broadcast=True)
 
-def track_change(state):
-    print('Received event track_change', state)
-    socketio.emit('track_change', dict(state))
+# @socketio.on('disconnect')
+# def handle_disconnect():
+#     print('Client disconnected')
+
+# def track_change(state):
+#     print('Received event track_change', state)
+#     socketio.emit('track_change', dict(state))
 
 def start():
-    socketio.run(app, debug=True, host='127.0.0.1', port=os.getenv('HTTP_PORT', 8080))
+    app.run(debug=True, host='127.0.0.1', port=os.getenv('HTTP_PORT', 8080))
+    # a.run(app, debug=True, host='127.0.0.1', port=os.getenv('HTTP_PORT', 8080))

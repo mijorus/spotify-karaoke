@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Spotify Karaoke</title>
-    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <!-- <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script> -->
     <style>
         * {
             margin: 0;
@@ -194,8 +194,9 @@
                 <span class="spotify-icon">♪</span>
                 <h1>Spotify Karaoke</h1>
             </div>
-            <p id="status"></p>
-                <h2 id="track_name"></h2>
+            <p id="status" style="padding-bottom: 10px;"></p>
+            <h2 id="track_name"></h2>
+            <p id="track_scale"></p>
         </header>
 
         <main>
@@ -211,7 +212,7 @@
                             <button class="volume-btn" id="track1-plus">+</button>
                         </div>
                     </div>
-                    <audio id="track1" src="track1.mp3"></audio>
+                    <audio id="track1"></audio>
                 </div>
 
                 <div class="track">
@@ -225,90 +226,105 @@
                             <button class="volume-btn" id="track2-plus">+</button>
                         </div>
                     </div>
-                    <audio id="track2" src="track2.mp3"></audio>
+                    <audio id="track2"></audio>
                 </div>
             </div>
 
-            <div class="controls" style="display: none;">
-                <button id="playBtn" class="btn btn-play">
-                    <span class="btn-icon">▶</span>
-                    <span class="btn-text">Play</span>
-                </button>
-                <button id="pauseBtn" class="btn btn-pause">
-                    <span class="btn-icon">⏸</span>
-                    <span class="btn-text">Pause</span>
+            <div class="controls">
+                <button id="play-btn" class="btn btn-pause" data-state="off">
+                    Click to enable playback
                 </button>
             </div>
         </main>
     </div>
 
     <script>
-        const socket = io('/');
         const trackName = document.getElementById('track_name');
+        const trackScale = document.getElementById('track_scale');
         const statusLabel = document.getElementById('status');
-        const playBtn = document.getElementById('playBtn');
-        const pauseBtn = document.getElementById('pauseBtn');
+        const playBtn = document.getElementById('play-btn');
         const track1 = document.getElementById('track1');
         const track2 = document.getElementById('track2');
 
-        // Connection opened
-         socket.on('connect', () => {
-            console.log('Connected to server');
+        setTrack1Vol(0.5);
+        setTrack2Vol(0.1);
+
+        function validVolume(volume) {
+            if (volume < 0) return 0;
+            if (volume > 1) return 1;
+            return volume;
+        }
+
+        function setTrack1Vol(volume) {
+            track1.volume = Math.min(validVolume(volume));
+            const vol = Math.round(track1.volume * 100);
+            document.getElementById('track1-vol').textContent = vol + '%';
+        }
+
+        function setTrack2Vol(volume) {
+            track2.volume = Math.min(validVolume(volume));
+            const vol = Math.round(track2.volume * 100);
+            document.getElementById('track2-vol').textContent = vol + '%';
+        }
+
+        playBtn.addEventListener('click', () => {
+            if (playBtn.dataset.state === 'off') {
+                setInterval(poll, 500);
+                playBtn.textContent = 'Enabled';
+                playBtn.dataset.state = 'on';
+                playBtn.setAttribute('disabled', 'true');
+            }
         });
-
-        // playBtn.addEventListener('click', () => {
-        //     track1.play();
-        //     track2.play();
-        //     socket.emit('play', { tracks: ['track1', 'track2'] });
-        // });
-
-        // pauseBtn.addEventListener('click', () => {
-        //     track1.pause();
-        //     track2.pause();
-        //     socket.emit('pause', { tracks: ['track1', 'track2'] });
-        // });
 
         // Volume controls for Track 1
         document.getElementById('track1-plus').addEventListener('click', () => {
-            track1.volume = Math.min(track1.volume + 0.1, 1);
-            const vol = Math.round(track1.volume * 100);
-            document.getElementById('track1-vol').textContent = vol + '%';
+            setTrack1Vol(track1.volume + 0.1, 1);
         });
 
         document.getElementById('track1-minus').addEventListener('click', () => {
-            track1.volume = Math.max(track1.volume - 0.1, 0);
-            const vol = Math.round(track1.volume * 100);
-            document.getElementById('track1-vol').textContent = vol + '%';
+            setTrack1Vol(track1.volume - 0.01, 0);
 
         });
 
         // Volume controls for Track 2
         document.getElementById('track2-plus').addEventListener('click', () => {
-            track2.volume = Math.min(track2.volume + 0.1, 1);
-            const vol = Math.round(track2.volume * 100);
-            document.getElementById('track2-vol').textContent = vol + '%';
+            setTrack2Vol(track2.volume + 0.01, 1);
         });
 
         document.getElementById('track2-minus').addEventListener('click', () => {
-            track2.volume = Math.max(track2.volume - 0.1, 0);
-            const vol = Math.round(track2.volume * 100);
-            document.getElementById('track2-vol').textContent = vol + '%';
+            setTrack2Vol(track2.volume - 0.01, 0);
         });
 
-        socket.on('track_change', (data) => {
-            console.log(event, data);
-            statusLabel.textContent = data.status
+        async function poll() {
+            const resp = await fetch('/state');
+            const data = await resp.json();
 
-            if (data.vocals_track) {
-                track1.setAttribute('src', data.vocals_track)
-                track1.play()
+            statusLabel.textContent = data.status;
+            trackName.textContent = data.track_name;
+            trackScale.textContent = data.scale;
+
+            if (playBtn.dataset.state !== 'on') {
+                return;
             }
 
-            if (data.vocals_track) {
-                track2.setAttribute('src', data.inst_track)
-                track2.play()
+            if (data.inst_track && data.inst_track !== track1.dataset.src) {
+                track1.dataset.src = data.inst_track;
+                track1.setAttribute('src', data.inst_track);
+                track1.play();
+            } else if (!data.inst_track) {
+                track1.dataset.src = '';
+                track1.pause();
             }
-        });
+
+            if (data.vocals_track && data.vocals_track !== track2.dataset.src) {
+                track2.dataset.src = data.vocals_track;
+                track2.setAttribute('src', data.vocals_track);
+                track2.play();
+            } else if (!data.vocals_track) {
+                track2.dataset.src = '';
+                track2.pause();
+            }
+        };
     </script>
 </body>
 

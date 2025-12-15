@@ -4,6 +4,8 @@ from time import sleep
 import pygame
 import os
 import multiprocessing
+import threading
+import json
 from time import time
 
 from spotify_karaoke.SpotifyImpl import SpotifyImpl
@@ -17,6 +19,10 @@ from spotify_karaoke.constants import storage_dir, tracks_dir, scopes, separated
 
 dotenv.load_dotenv()
 pygame.mixer.init()
+
+def update_state_file(state):
+    with open(os.path.join(storage_dir, 'state.json'), 'w+') as f:
+        f.write(json.dumps(state))
 
 def poll_playback():
     # print('Waiting for a playing track...')
@@ -41,12 +47,12 @@ def poll_playback():
         return
 
     if SpotifyImpl.playback_state['is_playing']:
-        SpotifyImpl.client.pause_playback()
+        SpotifyImpl.force_pause()
         
     start = time()
 
     if not Track.has_loaded_successfully(isrc):
-        State.update_state(status='Loading track...')
+        State.update_state(status='Loading track...', track_name=curr_track_name)
 
         load_track_process = multiprocessing.Process(
             target=Track.load,
@@ -106,6 +112,8 @@ def poll_playback():
 
         curr_track_id = SpotifyImpl.playback_state['item']['id']
         SpotifyImpl.refresh_playback_state()
+        
+        Stems.set_progress(SpotifyImpl.playback_state['progress_ms'] / 1000)
 
         if SpotifyImpl.playback_state['item']['id'] != curr_track_id:
             break
@@ -114,24 +122,24 @@ def poll_playback():
     poll_playback()
 
 def main():
-    mpmanager = multiprocessing.Manager()
-    State.state = mpmanager.dict()
-    State.add_listener(func=TUI.display)
-    State.add_listener(func=server.track_change)
-
-    State.update_state(status='Starting...')
-
     if not os.path.exists(storage_dir):
         os.mkdir(storage_dir)
     
     if not os.path.exists(tracks_dir):
         os.mkdir(tracks_dir)
+    
+    update_state_file(State.state)
+    State.add_listener(func=TUI.display)
+    State.add_listener(func=update_state_file)
+
+    State.update_state(status='Starting...')
 
     TUI.start()
-    multiprocessing.Process(
+    poll = threading.Thread(
         target=poll_playback,
-    ).start()
-
+    )
+    
+    poll.start()
     server.start()
 
 if __name__ == '__main__':
