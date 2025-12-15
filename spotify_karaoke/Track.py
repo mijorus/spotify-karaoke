@@ -6,6 +6,7 @@ import yt_dlp
 import subprocess
 import numpy as np
 from spotify_karaoke.TUI import TUI
+from spotify_karaoke.State import State
 from spotify_karaoke.constants import tracks_dir, separated_tracks_dir, separated_tracks_subdir
 
 class Track():
@@ -110,14 +111,14 @@ class Track():
             }
 
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                TUI.display(status='Downloading track...')
+                State.update_state(status='Downloading track...')
                 ydl.download([f'ytsearch1:"{isrc}"'])
 
 
         if not os.path.exists(
             os.path.join(tracks_dir, 'separated', 'htdemucs', isrc)
         ) and os.path.isfile(target_file):
-            TUI.display(status='Separating track...')
+            State.update_state(status='Separating track...')
             device = 'cpu'
             
             if torch.backends.mps.is_available():

@@ -4,13 +4,14 @@ from time import sleep
 import pygame
 import os
 import multiprocessing
-import subprocess
 from time import time
 
 from spotify_karaoke.SpotifyImpl import SpotifyImpl
 from spotify_karaoke.Stems import Stems
 from spotify_karaoke.Track import Track
 from spotify_karaoke.TUI import TUI
+from spotify_karaoke.State import State
+from spotify_karaoke.web import server
 
 from spotify_karaoke.constants import storage_dir, tracks_dir, scopes, separated_tracks_subdir
 
@@ -19,11 +20,11 @@ pygame.mixer.init()
 
 def poll_playback():
     # print('Waiting for a playing track...')
-    TUI.display(status='Logging in...')
+    State.update_state(status='Logging in...')
 
     SpotifyImpl.init()
 
-    TUI.display(status='Waiting for a playing track...')
+    State.update_state(status='Waiting for a playing track...')
 
     while not SpotifyImpl.is_playing_track:
         sleep(2)
@@ -45,7 +46,7 @@ def poll_playback():
     start = time()
 
     if not Track.has_loaded_successfully(isrc):
-        TUI.display(status='Loading track...')
+        State.update_state(status='Loading track...')
 
         load_track_process = multiprocessing.Process(
             target=Track.load,
@@ -89,13 +90,13 @@ def poll_playback():
     
     if track_succesful:
         elapsed = time() - start
-        TUI.display(status=f'✅ Loaded in {elapsed:.2f}s', 
+        State.update_state(status=f'✅ Loaded in {elapsed:.2f}s', 
             track_name=curr_track_name,
             scale=Track.get_config(isrc)['track']['scale'])
     
         Stems.play_stems(track_name=isrc)
     else:
-        TUI.display(status='Track not found - fallback')
+        State.update_state(status='Track not found - fallback')
         SpotifyImpl.client.volume(50)
 
     SpotifyImpl.refresh_playback_state()
@@ -113,15 +114,25 @@ def poll_playback():
     poll_playback()
 
 def main():
-    TUI.start()
-    
+    mpmanager = multiprocessing.Manager()
+    State.state = mpmanager.dict()
+    State.add_listener(func=TUI.display)
+    State.add_listener(func=server.track_change)
+
+    State.update_state(status='Starting...')
+
     if not os.path.exists(storage_dir):
         os.mkdir(storage_dir)
     
     if not os.path.exists(tracks_dir):
         os.mkdir(tracks_dir)
 
-    poll_playback()
+    TUI.start()
+    multiprocessing.Process(
+        target=poll_playback,
+    ).start()
+
+    server.start()
 
 if __name__ == '__main__':
     main()

@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotify Karaoke</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: rgb(10, 10, 10);
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .spotify-icon {
+            font-size: 32px;
+            color: #1DB954;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1DB954;
+        }
+
+        main {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 16px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+        }
+
+        .tracks {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .track {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(29, 185, 84, 0.2);
+            border-radius: 12px;
+            padding: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .track:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(29, 185, 84, 0.5);
+        }
+
+        .track-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .track-info h2 {
+            font-size: 18px;
+            margin-bottom: 5px;
+            color: #1DB954;
+        }
+
+        .track-info p {
+            font-size: 14px;
+            color: #b3b3b3;
+        }
+
+        .volume-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .volume-btn {
+            background: rgba(29, 185, 84, 0.3);
+            border: 1px solid #1DB954;
+            color: #1DB954;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .volume-btn:hover {
+            background: rgba(29, 185, 84, 0.5);
+        }
+
+        .volume-display {
+            font-size: 12px;
+            color: #b3b3b3;
+            min-width: 25px;
+            text-align: center;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 24px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-play {
+            background: #1DB954;
+            color: #000;
+        }
+
+        .btn-play:hover {
+            background: #1ed760;
+            transform: scale(1.05);
+        }
+
+        .btn-pause {
+            background: rgba(29, 185, 84, 0.2);
+            color: #1DB954;
+            border: 1px solid #1DB954;
+        }
+
+        .btn-pause:hover {
+            background: rgba(29, 185, 84, 0.3);
+            transform: scale(1.05);
+        }
+
+        .btn-icon {
+            font-size: 18px;
+        }
+
+        @media (max-width: 480px) {
+            .controls {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <span class="spotify-icon">♪</span>
+                <h1>Spotify Karaoke</h1>
+            </div>
+            <p id="status"></p>
+                <h2 id="track_name"></h2>
+        </header>
+
+        <main>
+            <div class="tracks">
+                <div class="track">
+                    <div class="track-header">
+                        <div class="track-info">
+                            <h2>Instrumental</h2>
+                        </div>
+                        <div class="volume-controls">
+                            <button class="volume-btn" id="track1-minus">−</button>
+                            <span class="volume-display" id="track1-vol">100%</span>
+                            <button class="volume-btn" id="track1-plus">+</button>
+                        </div>
+                    </div>
+                    <audio id="track1" src="track1.mp3"></audio>
+                </div>
+
+                <div class="track">
+                    <div class="track-header">
+                        <div class="track-info">
+                            <h2>Vocals</h2>
+                        </div>
+                        <div class="volume-controls">
+                            <button class="volume-btn" id="track2-minus">−</button>
+                            <span class="volume-display" id="track2-vol">100%</span>
+                            <button class="volume-btn" id="track2-plus">+</button>
+                        </div>
+                    </div>
+                    <audio id="track2" src="track2.mp3"></audio>
+                </div>
+            </div>
+
+            <div class="controls" style="display: none;">
+                <button id="playBtn" class="btn btn-play">
+                    <span class="btn-icon">▶</span>
+                    <span class="btn-text">Play</span>
+                </button>
+                <button id="pauseBtn" class="btn btn-pause">
+                    <span class="btn-icon">⏸</span>
+                    <span class="btn-text">Pause</span>
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const socket = io('/');
+        const trackName = document.getElementById('track_name');
+        const statusLabel = document.getElementById('status');
+        const playBtn = document.getElementById('playBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const track1 = document.getElementById('track1');
+        const track2 = document.getElementById('track2');
+
+        // Connection opened
+         socket.on('connect', () => {
+            console.log('Connected to server');
+        });
+
+        // playBtn.addEventListener('click', () => {
+        //     track1.play();
+        //     track2.play();
+        //     socket.emit('play', { tracks: ['track1', 'track2'] });
+        // });
+
+        // pauseBtn.addEventListener('click', () => {
+        //     track1.pause();
+        //     track2.pause();
+        //     socket.emit('pause', { tracks: ['track1', 'track2'] });
+        // });
+
+        // Volume controls for Track 1
+        document.getElementById('track1-plus').addEventListener('click', () => {
+            track1.volume = Math.min(track1.volume + 0.1, 1);
+            const vol = Math.round(track1.volume * 100);
+            document.getElementById('track1-vol').textContent = vol + '%';
+        });
+
+        document.getElementById('track1-minus').addEventListener('click', () => {
+            track1.volume = Math.max(track1.volume - 0.1, 0);
+            const vol = Math.round(track1.volume * 100);
+            document.getElementById('track1-vol').textContent = vol + '%';
+
+        });
+
+        // Volume controls for Track 2
+        document.getElementById('track2-plus').addEventListener('click', () => {
+            track2.volume = Math.min(track2.volume + 0.1, 1);
+            const vol = Math.round(track2.volume * 100);
+            document.getElementById('track2-vol').textContent = vol + '%';
+        });
+
+        document.getElementById('track2-minus').addEventListener('click', () => {
+            track2.volume = Math.max(track2.volume - 0.1, 0);
+            const vol = Math.round(track2.volume * 100);
+            document.getElementById('track2-vol').textContent = vol + '%';
+        });
+
+        socket.on('track_change', (data) => {
+            console.log(event, data);
+            statusLabel.textContent = data.status
+
+            if (data.vocals_track) {
+                track1.setAttribute('src', data.vocals_track)
+                track1.play()
+            }
+
+            if (data.vocals_track) {
+                track2.setAttribute('src', data.inst_track)
+                track2.play()
+            }
+        });
+    </script>
+</body>
+
+</html>

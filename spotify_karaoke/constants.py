@@ -1,6 +1,7 @@
 import os
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
+templates_dir = os.path.join(current_dir, 'web', 'templates')
 storage_dir = os.getenv('APP_STORAGE', os.path.join(current_dir, '..', 'storage'))
 tracks_dir = os.path.join(storage_dir, 'tracks')
 separated_tracks_dir = os.path.join(tracks_dir, 'separated')

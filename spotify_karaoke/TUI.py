@@ -10,21 +10,14 @@ class TUI():
         pass
 
     @staticmethod
-    def _on_press(key):
-        try:
-            print(f"Key pressed: {key.char}")
-        except AttributeError:
-            print(f"Special key pressed: {key}")
-
-    @staticmethod
-    def display(status='', track_name='', scale=''):
+    def display(state):
         TUI.clear_screen()
 
         message = f"""
         ### Spotify Karaoke ###
-        # Status: {status}
-        # Track: {track_name}
-        # Scale: {scale}
+        # Status: {state['status']}
+        # Track: {state['track_name']}
+        # Scale: {state['scale']}
 
         """
         
