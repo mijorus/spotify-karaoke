@@ -39,6 +39,29 @@ Both perfectly usable if you are enjoying karaoke with your friends.
    pip install -r requirements.txt
    ```
 
+## Usage
+
+```bash
+conda activate karaoke-venv
+python3 -m spotify_karaoke
+```
+
+This will:
+- Prompt to login to Spotify using the official APIs to control playbac
+- Start a local server at `http://127.0.0.1:8080`
+
+### How to use it
+
+- Open Spotify on your laptop (Web / App is the same)
+- Play a song
+- SpotifyKaraoke will:
+    - Pause the playback
+    - Download the track 
+    - Separate vocals and instrument tracks
+    - Resume playback
+- You can now sing using the Lyrics on the Spotify App
+
+
 ## Performance
 
 This project performs heavy audio processing. For optimal performance:
@@ -46,12 +69,6 @@ This project performs heavy audio processing. For optimal performance:
 - CPU processing is supported but significantly slower
 - Ensure sufficient disk space for audio files and separated tracks
 
-## Usage
-
-```bash
-conda activate karaoke-venv
-python3 -m spotify_karaoke
-```
 
 ## Legal
 
