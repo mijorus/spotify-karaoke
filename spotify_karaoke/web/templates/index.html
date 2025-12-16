@@ -232,7 +232,7 @@
 
             <div class="controls">
                 <button id="play-btn" class="btn btn-pause" data-state="off">
-                    Click to enable playback
+                    Disabled, click to enable
                 </button>
             </div>
         </main>
@@ -267,12 +267,24 @@
             document.getElementById('track2-vol').textContent = vol + '%';
         }
 
+        let polling;
         playBtn.addEventListener('click', () => {
             if (playBtn.dataset.state === 'off') {
-                setInterval(poll, 500);
+                polling = setInterval(poll, 2000);
                 playBtn.textContent = 'Enabled';
                 playBtn.dataset.state = 'on';
-                playBtn.setAttribute('disabled', 'true');
+                document.title = 'Spotify Karaoke';
+            } else {
+                clearInterval(polling);
+                trackName.textContent = '';
+                trackScale.textContent = '';
+                statusLabel.textContent = '';
+                playBtn.dataset.state = 'off';
+                playBtn.textContent = 'Disabled, click to enable';
+
+                track1.pause();
+                track2.pause();
+                document.title = 'Karaoke is disabled';
             }
         });
 
@@ -295,33 +307,77 @@
             setTrack2Vol(track2.volume - 0.01, 0);
         });
 
+        let playingTrackIsrc = null;
+
+        async function loadTrack(state_resp, isrc) {
+            statusLabel.textContent = 'Loading track...';
+            document.title = 'Loading track...';
+            trackName.textContent = state_resp.data.item.name;
+            trackScale.textContent = '---';
+
+            await fetch('/spotify_pause');
+            const resp = await fetch('/load_song/' + isrc);
+            const data = await resp.json();
+
+            if (playingTrackIsrc !== isrc || data.status !== 'ok') {
+                return;
+            }
+
+            trackName.textContent = data.name;
+            trackScale.textContent = data.scale;
+            statusLabel.textContent = data.infos;
+
+            const p = await fetch('/spotify_play');
+            await p.json();
+
+            track1.src = data.no_vocals;
+            track1.currentTime = 0;
+            track1.play();
+
+            track2.src = data.vocals;
+            track2.currentTime = 0;
+            track2.play();
+
+            document.title = 'Playing track...';
+        }
+
         async function poll() {
             const resp = await fetch('/state');
             const data = await resp.json();
 
-            statusLabel.textContent = data.status;
-            trackName.textContent = data.track_name;
-            trackScale.textContent = data.scale;
-
-            if (playBtn.dataset.state !== 'on') {
+            if (!data.is_playing) {
+                track1.pause();
+                track2.pause();
                 return;
             }
 
-            if (data.inst_track && data.inst_track !== track1.dataset.src) {
-                track1.dataset.src = data.inst_track;
-                track1.setAttribute('src', data.inst_track);
-                track1.play();
-            } else if (!data.inst_track) {
-                track1.dataset.src = '';
-                track1.pause();
+            const isrc = data.data.item.external_ids?.isrc;
+
+            if (playingTrackIsrc === isrc) {
+                const spotifyTrackPosition = data.data.progress_ms / 1000;
+                const diff = Math.abs(track1.currentTime - spotifyTrackPosition);
+
+                if (track1.paused) {
+                    track1.play();
+                    track2.play();
+                } else {
+                    if (diff > 2) {
+                        track1.currentTime = 0;
+                        track2.currentTime = 0;
+
+                        const p = await fetch('/spotify_play');
+                        await p.json();
+                        track1.play();
+                        track2.play();
+                    }
+                }
+            } else {
+                playingTrackIsrc = isrc;
+                loadTrack(data, isrc);
             }
 
-            if (data.vocals_track && data.vocals_track !== track2.dataset.src) {
-                track2.dataset.src = data.vocals_track;
-                track2.setAttribute('src', data.vocals_track);
-                track2.play();
-            } else if (!data.vocals_track) {
-                track2.dataset.src = '';
+            if (!data.is_playing) {
+                track1.pause();
                 track2.pause();
             }
         };

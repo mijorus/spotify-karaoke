@@ -4,15 +4,19 @@ import torch
 import configparser
 import yt_dlp
 import subprocess
+import multiprocessing
 import numpy as np
-from spotify_karaoke.TUI import TUI
-from spotify_karaoke.State import State
+from typing import Optional
 from spotify_karaoke.constants import tracks_dir, separated_tracks_dir, separated_tracks_subdir
 
 class Track():
-    @staticmethod
-    def estimate_key_advanced(isrc):
-        target_file = Track.get_track_file_path(isrc)
+    loading_process: Optional[multiprocessing.Process] = None
+
+    def __init__(self, isrc: str):
+        self.isrc = isrc
+
+    def estimate_key_advanced(self):
+        target_file = self.get_track_file_path()
         # Load audio
         y, sr = librosa.load(target_file)
         
@@ -61,73 +65,79 @@ class Track():
             key_idx = minor_correlations.index(max_minor)
             return f"{keys[key_idx]} minor"
 
-    @staticmethod
-    def get_track_file_path(isrc):
-        return os.path.join(tracks_dir, f'{isrc}.mp3')
+    def get_track_file_path(self):
+        return os.path.join(tracks_dir, f'{self.isrc}.mp3')
     
-    @staticmethod
-    def get_track_config_path(isrc):
-        return os.path.join(tracks_dir, f'{isrc}.conf')
-
-    def get_config(isrc: str):
-        if not os.path.isfile(Track.get_track_config_path(isrc)):
+    def get_track_config_path(self):
+        return os.path.join(tracks_dir, f'{self.isrc}.conf')
+    
+    def get_config(self):
+        if not os.path.isfile(self.get_track_config_path()):
             return None
 
         config = configparser.ConfigParser()
-        config.read(Track.get_track_config_path(isrc))
-        
+        config.read(self.get_track_config_path())
+
         return config
 
-    def save_track_config(isrc: str, name: str, scale: str):
+    def save_track_config(self, name: str, scale: str):
         config = configparser.ConfigParser()
         
         config['track'] = {
-            'isrc': isrc,
+            'isrc': self.isrc,
             'name': name, 
             'scale': scale
         }
 
-        with open(os.path.join(tracks_dir, f'{isrc}.conf'), 'w+') as conf_file:
+        with open(os.path.join(tracks_dir, f'{self.isrc}.conf'), 'w+') as conf_file:
             config.write(conf_file)
 
-    def has_loaded_successfully(isrc: str):
-        return os.path.exists(Track.get_track_file_path(isrc)) and \
-            os.path.exists(os.path.join(separated_tracks_subdir, isrc))
+    def has_loaded_successfully(self):
+        return os.path.exists(self.get_track_file_path()) and \
+            os.path.exists(os.path.join(separated_tracks_subdir, self.isrc))
 
-    @staticmethod
-    def load(isrc):
-        target_file = Track.get_track_file_path(isrc)
+    def load_in_thread(self):
+        Track.loading_process = multiprocessing.Process(
+            target=load_track,
+            args=(self.get_track_file_path(), self.isrc,)
+        )
 
-        if (not os.path.isfile(target_file)):
-            ydl_opts = {
-                # 'quiet': True,
-                'format': 'bestaudio/best',
-                'outtmpl': os.path.join(tracks_dir, f'{isrc}.%(ext)s'),
-                'postprocessors': [{
-                    'key': 'FFmpegExtractAudio',
-                    'preferredcodec': 'mp3',
-                    'preferredquality': '192',
-                }],
-            }
+        Track.loading_process.start()
+        Track.loading_process.join()
 
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                ydl.download([f'ytsearch1:"{isrc}"'])
+def load_track(target_file, isrc):
+    if (not os.path.isfile(target_file)):
+        ydl_opts = {
+            # 'quiet': True,
+            'format': 'bestaudio/best',
+            'outtmpl': os.path.join(tracks_dir, f'{isrc}.%(ext)s'),
+            'postprocessors': [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+                'preferredquality': '192',
+            }],
+        }
+
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([f'ytsearch1:"{isrc}"'])
 
 
-        if not os.path.exists(
-            os.path.join(tracks_dir, 'separated', 'htdemucs', isrc)
-        ) and os.path.isfile(target_file):
-            device = 'cpu'
-            
-            if torch.backends.mps.is_available():
-                device = 'mps'
-            
-            subprocess.run(['python3', '-m', 'demucs', "--mp3", "--two-stems", "vocals", "--shifts", "1", 
-                target_file, '--out', separated_tracks_dir, '--device', device, '--mp3-preset', '4'],
-                # stdout=subprocess.PIPE,
-                # stderr=subprocess.PIPE,
-                check=True
-            )
+    if not os.path.exists(
+        os.path.join(tracks_dir, 'separated', 'htdemucs', isrc)
+    ) and os.path.isfile(target_file):
+        device = 'cpu'
+        
+        if torch.backends.mps.is_available():
+            device = 'mps'
+        if torch.cuda.is_available():
+            device = 'cuda'
+        
+        subprocess.run(['python3', '-m', 'demucs', "--mp3", "--two-stems", "vocals", "--shifts", "1", 
+            target_file, '--out', separated_tracks_dir, '--device', device, '--mp3-preset', '4'],
+            # stdout=subprocess.PIPE,
+            # stderr=subprocess.PIPE,
+            check=True
+        )
 
 # # Usage
 # key = estimate_key_advanced('song.mp3')
