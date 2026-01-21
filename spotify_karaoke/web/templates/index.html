@@ -160,6 +160,19 @@
             transform: scale(1.05);
         }
 
+
+        .btn-pause[data-state="off"] {
+            background: #591515 !important;
+            color: #ffffff;
+            border: 1px solid #410000 !important;
+        }
+
+        .btn-pause:hover[data-state="off"] {
+            background: rgb(214, 84, 84) !important;    
+            transform: scale(1.05);
+            
+        }
+
         .btn-pause {
             background: rgba(29, 185, 84, 0.2);
             color: #1DB954;
@@ -344,6 +357,10 @@
         async function poll() {
             const resp = await fetch('/state');
             const data = await resp.json();
+
+            if (data.status_label && data.status_label.length) {
+                statusLabel.textContent = data.status_label;
+            }
 
             if (!data.is_playing) {
                 track1.pause();

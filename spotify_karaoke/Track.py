@@ -1,3 +1,4 @@
+import re
 import os
 import librosa
 import torch
@@ -7,13 +8,14 @@ import subprocess
 import multiprocessing
 import numpy as np
 from typing import Optional
-from spotify_karaoke.constants import tracks_dir, separated_tracks_dir, separated_tracks_subdir
+from spotify_karaoke.constants import tracks_dir, separated_tracks_dir, separated_tracks_subdir, track_loading_status_file
 
 class Track():
     loading_process: Optional[multiprocessing.Process] = None
 
     def __init__(self, isrc: str):
         self.isrc = isrc
+        Track.update_loading_status('')
 
     def estimate_key_advanced(self):
         target_file = self.get_track_file_path()
@@ -105,6 +107,11 @@ class Track():
         Track.loading_process.start()
         Track.loading_process.join()
 
+    @staticmethod
+    def update_loading_status(label: str):
+        with open(track_loading_status_file, 'w+') as f:
+            f.write(label)
+
 def load_track(target_file, isrc):
     if (not os.path.isfile(target_file)):
         ydl_opts = {
@@ -118,6 +125,7 @@ def load_track(target_file, isrc):
             }],
         }
 
+        Track.update_loading_status(f'Downloading track...')
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([f'ytsearch1:"{isrc}"'])
 
@@ -132,12 +140,23 @@ def load_track(target_file, isrc):
         if torch.cuda.is_available():
             device = 'cuda'
         
-        subprocess.run(['python3', '-m', 'demucs', "--mp3", "--two-stems", "vocals", "--shifts", "1", 
+        proc = subprocess.Popen(['python3', '-m', 'demucs', "--mp3", "--two-stems", "vocals", "--shifts", "1", 
             target_file, '--out', separated_tracks_dir, '--device', device, '--mp3-preset', '4'],
-            # stdout=subprocess.PIPE,
-            # stderr=subprocess.PIPE,
-            check=True
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1
         )
+
+        for l in proc.stdout:
+            match = re.search(r"\d{1,3}%\|", l)
+
+            if match:
+                s = match.group().replace('|', '')
+                Track.update_loading_status(f'Converting track {s}')
+
+        proc.wait()
+        Track.update_loading_status(f'')
 
 # # Usage
 # key = estimate_key_advanced('song.mp3')

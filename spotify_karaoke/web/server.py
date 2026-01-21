@@ -2,7 +2,7 @@ import os
 import time
 from flask import Flask, render_template, send_from_directory
 
-from spotify_karaoke.constants import templates_dir, storage_dir
+from spotify_karaoke.constants import templates_dir, storage_dir, track_loading_status_file
 from spotify_karaoke.SpotifyImpl import SpotifyImpl
 from spotify_karaoke.Track import Track
 
@@ -53,8 +53,13 @@ def get_spotify_play_loud():
 def get_spotify_playback_state():
     SpotifyImpl.refresh_playback_state()
 
+    status_label = ''
+    if os.path.exists(track_loading_status_file):
+        status_label = open(track_loading_status_file).read()
+
     return { 
-        'data': SpotifyImpl.playback_state, 
+        'status_label': status_label,
+        'data': SpotifyImpl.playback_state,
         'is_playing': SpotifyImpl.is_playing_track 
     }
 
