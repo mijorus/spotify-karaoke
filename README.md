@@ -32,7 +32,7 @@ Both perfectly usable if you are enjoying karaoke with your friends.
 2. Create conda environment:
    ```bash
    conda create -n karaoke-venv python=3.10
-   conta activate karaoke-venv
+   conda activate karaoke-venv
    ```
 2. Install dependencies:
    ```bash
