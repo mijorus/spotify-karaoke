@@ -32,3 +32,17 @@ class SpotifyImpl():
         SpotifyImpl.is_playing_track = (playback_state and playback_state['is_playing'] \
                                         # and playback_state['actions'].get('pausing', False)
                                         and playback_state['currently_playing_type'] == 'track')
+
+    @staticmethod
+    def get_playlist_tracks(playlist_id: str) -> list[dict]:
+        tracks = []
+        results = SpotifyImpl.client.playlist_items(playlist_id, fields='items(track(name,isrc,external_ids)),next')
+        while results:
+            for item in results['items']:
+                track = item.get('track')
+                if track:
+                    isrc = track.get('external_ids', {}).get('isrc')
+                    if isrc:
+                        tracks.append({'name': track['name'], 'isrc': isrc})
+            results = SpotifyImpl.client.next(results) if results.get('next') else None
+        return tracks
