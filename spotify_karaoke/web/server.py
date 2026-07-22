@@ -2,9 +2,10 @@ import os
 import time
 from flask import Flask, render_template, send_from_directory
 
-from spotify_karaoke.constants import templates_dir, storage_dir, track_loading_status_file
+from spotify_karaoke.constants import templates_dir, storage_dir, track_loading_status_file, karaoke_playlist_id
 from spotify_karaoke.SpotifyImpl import SpotifyImpl
 from spotify_karaoke.Track import Track
+from spotify_karaoke.PlaylistDownloader import PlaylistDownloader
 
 app = Flask(__name__, template_folder=templates_dir)
 
@@ -63,6 +64,13 @@ def get_spotify_playback_state():
         'is_playing': SpotifyImpl.is_playing_track 
     }
 
+@app.route('/playlist_status')
+def get_playlist_status():
+    return {
+        'enabled': bool(karaoke_playlist_id),
+        'tracks': PlaylistDownloader.status(),
+    }
+
 @app.route('/load_song/<path:isrc>')
 def get_load_song(isrc):
     start = time.time()
@@ -102,4 +110,4 @@ def get_load_song(isrc):
     }
 
 def start():
-    app.run(debug=False, host='127.0.0.1', port=os.getenv('HTTP_PORT', 8080))
+    app.run(debug=False, host='127.0.0.1', port=os.getenv('HTTP_PORT', 8080), threaded=True)

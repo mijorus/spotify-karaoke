@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -m py_compile spotify_karaoke/PlaylistDownloader.py spotify_karaoke/__main__.py spotify_karaoke/web/server.py spotify_karaoke/constants.py)"
+    ]
+  }
+}

@@ -197,6 +197,64 @@
                 width: 100%;
             }
         }
+
+        .playlist {
+            margin-top: 30px;
+        }
+
+        .playlist h2 {
+            font-size: 16px;
+            color: #1DB954;
+            margin-bottom: 12px;
+        }
+
+        .playlist-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .playlist-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(29, 185, 84, 0.15);
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 14px;
+        }
+
+        .playlist-item .name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            margin-right: 10px;
+        }
+
+        .playlist-status {
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .playlist-status.downloaded {
+            color: #1DB954;
+        }
+
+        .playlist-status.downloading {
+            color: #e0b34d;
+        }
+
+        .playlist-status.pending {
+            color: #b3b3b3;
+        }
+
+        .playlist-empty {
+            font-size: 13px;
+            color: #b3b3b3;
+        }
     </style>
 </head>
 
@@ -247,6 +305,13 @@
                 <button id="play-btn" class="btn btn-pause" data-state="off">
                     Disabled, click to enable
                 </button>
+            </div>
+
+            <div class="playlist">
+                <h2>Downloaded tracks</h2>
+                <div class="playlist-list" id="playlist-list">
+                    <p class="playlist-empty">Loading playlist...</p>
+                </div>
             </div>
         </main>
     </div>
@@ -398,6 +463,46 @@
                 track2.pause();
             }
         };
+
+        const playlistList = document.getElementById('playlist-list');
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        function statusLabelFor(track) {
+            if (track.downloading) return { text: 'Downloading...', cls: 'downloading' };
+            if (track.downloaded) return { text: 'Downloaded', cls: 'downloaded' };
+            return { text: 'Pending', cls: 'pending' };
+        }
+
+        async function pollPlaylist() {
+            const resp = await fetch('/playlist_status');
+            const data = await resp.json();
+
+            if (!data.enabled) {
+                playlistList.innerHTML = '<p class="playlist-empty">No playlist configured (set KARAOKE_PLAYLIST).</p>';
+                return;
+            }
+
+            if (!data.tracks.length) {
+                playlistList.innerHTML = '<p class="playlist-empty">No tracks found in playlist.</p>';
+                return;
+            }
+
+            playlistList.innerHTML = data.tracks.map(track => {
+                const status = statusLabelFor(track);
+                return `<div class="playlist-item">
+                    <span class="name">${escapeHtml(track.name)}</span>
+                    <span class="playlist-status ${status.cls}">${status.text}</span>
+                </div>`;
+            }).join('');
+        }
+
+        pollPlaylist();
+        setInterval(pollPlaylist, 5000);
     </script>
 </body>
 

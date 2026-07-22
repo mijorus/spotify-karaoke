@@ -8,3 +8,5 @@ tracks_dir = os.path.join(storage_dir, 'tracks')
 separated_tracks_dir = os.path.join(tracks_dir, 'separated')
 separated_tracks_subdir = os.path.join(separated_tracks_dir, 'htdemucs')
 scopes = "app-remote-control,streaming,user-read-playback-state,user-modify-playback-state,user-read-currently-playing"
+karaoke_playlist_id = os.getenv('KARAOKE_PLAYLIST')
+playlist_poll_interval = int(os.getenv('PLAYLIST_POLL_INTERVAL', 60))
