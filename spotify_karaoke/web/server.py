@@ -76,26 +76,12 @@ def get_load_song(isrc):
     start = time.time()
     track = Track(isrc)
 
-    if track.has_loaded_successfully():
-        pass
-    else:
-        if Track.loading_process:
-            print('Killing old process')
-            Track.loading_process.kill()
-
-        track.load_in_thread()
-
-        if track.has_loaded_successfully():
-            scale = track.estimate_key_advanced()
-            curr_track_name = SpotifyImpl.playback_state['item']['name']
-            track.save_track_config(name=curr_track_name, scale=scale)
-        else:
-            return { 'status': 'fail' }
+    if not track.has_loaded_successfully():
+        return { 'status': 'fail' }
 
     conf =  track.get_config()['track']
     track_name = conf.get('name')
     scale = conf.get('scale')
-
 
     vocals = '/'.join(['/storage', 'tracks', 'separated', 'htdemucs', track.isrc, 'vocals.mp3'])
     no_vocals = '/'.join(['/storage', 'tracks', 'separated', 'htdemucs', track.isrc, 'no_vocals.mp3'])

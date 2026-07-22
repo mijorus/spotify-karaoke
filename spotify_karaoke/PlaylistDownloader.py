@@ -26,6 +26,7 @@ class PlaylistDownloader:
             for t in tracks
         ]
         
+        output.reverse()
         output = sorted(output, key= lambda el: el['downloaded'])
         return output
 
