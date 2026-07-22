@@ -67,7 +67,7 @@ def get_spotify_playback_state():
 @app.route('/playlist_status')
 def get_playlist_status():
     return {
-        'enabled': bool(karaoke_playlist_id),
+        'enabled': karaoke_playlist_id != None,
         'tracks': PlaylistDownloader.status(),
     }
 

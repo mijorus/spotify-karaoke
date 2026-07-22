@@ -116,7 +116,7 @@ def load_track(target_file, isrc):
     if (not os.path.isfile(target_file)):
         ydl_opts = {
             # 'quiet': True,
-            'js_runtimes': ['node'],
+            'js_runtimes': {'node': {}},
             'format': 'bestaudio/best',
             'outtmpl': os.path.join(tracks_dir, f'{isrc}.%(ext)s'),
             'postprocessors': [{

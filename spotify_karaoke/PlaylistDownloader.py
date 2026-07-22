@@ -16,7 +16,7 @@ class PlaylistDownloader:
         with PlaylistDownloader._lock:
             tracks = list(PlaylistDownloader.tracks)
 
-        return [
+        output = [
             {
                 'isrc': t['isrc'],
                 'name': t['name'],
@@ -25,6 +25,9 @@ class PlaylistDownloader:
             }
             for t in tracks
         ]
+        
+        output = sorted(output, key= lambda el: el['downloaded'])
+        return output
 
     @staticmethod
     def _run():
