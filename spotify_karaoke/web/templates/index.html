@@ -517,6 +517,7 @@
 
         function statusLabelFor(track) {
             if (track.downloading) return { text: 'Downloading...', cls: 'downloading' };
+            if (track.converting) return { text: 'Converting...', cls: 'downloading' };
             if (track.downloaded) return { text: 'Downloaded', cls: 'downloaded' };
             return { text: 'Pending', cls: 'pending' };
         }

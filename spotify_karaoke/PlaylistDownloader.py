@@ -16,15 +16,16 @@ class PlaylistDownloader:
         with PlaylistDownloader._lock:
             tracks = list(PlaylistDownloader.tracks)
 
-        output = [
-            {
-                'isrc': t['isrc'],
-                'name': t['name'],
-                'downloaded': Track(t['isrc']).has_loaded_successfully(),
-                'downloading': t['isrc'] == PlaylistDownloader.downloading_isrc,
-            }
-            for t in tracks
-        ]
+        output = []
+        for t in tracks:
+            track = Track(spotify_data=t)
+            output.append({
+                            'isrc': track.isrc,
+                            'name': track.name,
+                            'downloaded': track.has_loaded_successfully(),
+                            'downloading': PlaylistDownloader.downloading_isrc == track.isrc,
+                            'converting': (track.has_downloaded_successfully() == True and track.has_converted_successfully() == False),
+                        })
         
         output.reverse()
         output = sorted(output, key= lambda el: el['downloaded'])
@@ -34,23 +35,19 @@ class PlaylistDownloader:
     def _run():
         while True:
             try:
-                tracks = SpotifyImpl.get_playlist_tracks(karaoke_playlist_id)
+                playlist_tracks = SpotifyImpl.get_playlist_tracks(karaoke_playlist_id)
 
                 with PlaylistDownloader._lock:
-                    PlaylistDownloader.tracks = tracks
+                    PlaylistDownloader.tracks = playlist_tracks
 
-                for t in tracks:
-                    track = Track(t['isrc'])
+                for t in playlist_tracks:
+                    track = Track(spotify_data=t)
                     if track.has_loaded_successfully():
                         continue
 
+                    print('Tracks needs download ' + track.name)
                     PlaylistDownloader.downloading_isrc = t['isrc']
                     track.load_in_thread()
-
-                    if track.has_loaded_successfully():
-                        scale = track.estimate_key_advanced()
-                        track.save_track_config(name=t['name'], scale=scale)
-
                     PlaylistDownloader.downloading_isrc = None
             except Exception as e:
                 print(f'Playlist downloader error: {e}')
