@@ -168,9 +168,9 @@
         }
 
         .btn-pause:hover[data-state="off"] {
-            background: rgb(214, 84, 84) !important;    
+            background: rgb(214, 84, 84) !important;
             transform: scale(1.05);
-            
+
         }
 
         .btn-pause {
@@ -323,6 +323,7 @@
         const playBtn = document.getElementById('play-btn');
         const track1 = document.getElementById('track1');
         const track2 = document.getElementById('track2');
+        let midiDevice = null;
 
         setTrack1Vol(0.5);
         setTrack2Vol(0.1);
@@ -335,8 +336,7 @@
 
         function setTrack1Vol(volume) {
             track1.volume = Math.min(validVolume(volume));
-            const vol = Math.round(track1.volume * 100);
-            document.getElementById('track1-vol').textContent = vol + '%';
+            const vol = Math.round(track1.volume * 100); document.getElementById('track1-vol').textContent = vol + '%';
         }
 
         function setTrack2Vol(volume) {
@@ -352,6 +352,19 @@
                 playBtn.textContent = 'Enabled';
                 playBtn.dataset.state = 'on';
                 document.title = 'Spotify Karaoke';
+
+                navigator.requestMIDIAccess().then(midi => {
+                    const outputs = [...midi.outputs.values()];
+                    midiDevice = outputs.find(o => o.name.includes('IAC')) || outputs[0];
+                    if (!midiDevice) {
+                        return;
+                    }
+
+                    midiDevice.open()
+                        .then(() => {
+                            playBtn.textContent = 'Enabled - ' + midiDevice.name;
+                        });
+                });
             } else {
                 clearInterval(polling);
                 trackName.textContent = '';
@@ -416,7 +429,21 @@
             track2.currentTime = 0;
             track2.play();
 
+            if (midiDevice) {
+                [2, 3].forEach(oct => {
+                    const note = noteNumber(data.scale, oct);
+                    midiDevice.send([1, note, 127]);
+                });
+            }
+
             document.title = 'Playing track...';
+        }
+
+
+        function noteNumber(name, octave) {
+            const keys = ['C', 'C#', 'D', 'D#', 'E', 'F',
+                'F#', 'G', 'G#', 'A', 'A#', 'B'];
+            return keys.indexOf(name) + (octave + 2) * 12; // C4 = 60
         }
 
         async function poll() {
@@ -465,6 +492,16 @@
         };
 
         const playlistList = document.getElementById('playlist-list');
+
+        function sendMidiSignal(note) {
+            if (!midiDevice) {
+                return;
+            }
+
+            console.log('Sending midi signal');
+            midiDevice.send([0x90, note, 127]);
+            setTimeout(() => midiDevice.send([0x80, note, 0]), 500);
+        }
 
         function escapeHtml(str) {
             const div = document.createElement('div');
