@@ -432,7 +432,7 @@
             if (midiDevice) {
                 [2, 3].forEach(oct => {
                     const note = noteNumber(data.scale, oct);
-                    midiDevice.send([1, note, 127]);
+                    sendMidiSignal(note)
                 });
             }
 
