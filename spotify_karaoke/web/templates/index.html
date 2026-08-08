@@ -441,8 +441,14 @@
 
 
         function noteNumber(name, octave) {
-            const keys = ['C', 'C#', 'D', 'D#', 'E', 'F',
-                'F#', 'G', 'G#', 'A', 'A#', 'B'];
+            let keys = []
+            if (name.includes('major')) {
+                keys = ['C major', 'C# major', 'D major', 'D# major', 'E major', 'F major',
+                    'F# major', 'G major', 'G# major', 'A major', 'A# major', 'B major'];
+            } else {
+                keys = ['A minor', 'A# minor', 'B minor', 'C minor', 'C# minor', 'D minor', 'D# minor', 'E minor', 'F minor', 'F# minor', 'G minor', 'G# minor'];
+            }
+
             return keys.indexOf(name) + (octave + 2) * 12; // C4 = 60
         }
 
