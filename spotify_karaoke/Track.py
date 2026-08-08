@@ -96,7 +96,19 @@ class Track():
 
     def has_loaded_successfully(self):
         return os.path.exists(self.get_track_file_path()) and \
+             os.path.isfile(self.get_track_config_path()) and \
             os.path.exists(os.path.join(separated_tracks_subdir, self.isrc))
+
+    def delete(self):
+        if os.path.exists(self.get_track_file_path()):
+            os.remove(self.get_track_file_path())
+            
+        if os.path.isfile(self.get_track_config_path()):
+            os.remove(self.get_track_config_path())
+
+        separated = os.path.join(separated_tracks_subdir, self.isrc)
+        if os.path.exists(separated):
+            os.rmdir(separated)
 
     def load_in_thread(self):
         Track.loading_process = multiprocessing.Process(
