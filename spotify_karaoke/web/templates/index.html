@@ -255,6 +255,28 @@
             font-size: 13px;
             color: #b3b3b3;
         }
+
+        .key-shift {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .key-shift label {
+            font-size: 14px;
+            color: #b3b3b3;
+        }
+
+        .key-shift select {
+            background: rgba(255, 255, 255, 0.05);
+            color: #1DB954;
+            border: 1px solid #1DB954;
+            border-radius: 6px;
+            padding: 4px 8px;
+            font-size: 14px;
+        }
     </style>
 </head>
 
@@ -268,6 +290,10 @@
             <p id="status" style="padding-bottom: 10px;"></p>
             <h2 id="track_name"></h2>
             <p id="track_scale"></p>
+            <div class="key-shift">
+                <label for="key-select">Key:</label>
+                <select id="key-select"></select>
+            </div>
         </header>
 
         <main>
@@ -275,7 +301,7 @@
                 <div class="track">
                     <div class="track-header">
                         <div class="track-info">
-                            <h2>Instrumental</h2>
+                            <h2>Instrumental (o/p)</h2>
                         </div>
                         <div class="volume-controls">
                             <button class="volume-btn" id="track1-minus">−</button>
@@ -289,7 +315,7 @@
                 <div class="track">
                     <div class="track-header">
                         <div class="track-info">
-                            <h2>Vocals</h2>
+                            <h2>Vocals (k/l)</h2>
                         </div>
                         <div class="volume-controls">
                             <button class="volume-btn" id="track2-minus">−</button>
@@ -323,7 +349,39 @@
         const playBtn = document.getElementById('play-btn');
         const track1 = document.getElementById('track1');
         const track2 = document.getElementById('track2');
+        const keySelect = document.getElementById('key-select');
         let midiDevice = null;
+
+        const majorKeys = ['C major', 'C# major', 'D major', 'D# major', 'E major', 'F major',
+            'F# major', 'G major', 'G# major', 'A major', 'A# major', 'B major'];
+        const minorKeys = ['A minor', 'A# minor', 'B minor', 'C minor', 'C# minor', 'D minor', 'D# minor', 'E minor', 'F minor', 'F# minor', 'G minor', 'G# minor'];
+        let currentScale = null;
+
+
+        // Key shift in semitones, persisted across tracks
+        let keyOptions = [];
+        for (let index = 0; index < majorKeys.length; index++) {
+            const opt = document.createElement('option');
+
+            const el = majorKeys[index];
+            const elMin = minorKeys[index];
+
+            opt.value = el;
+            opt.textContent = el + ' / ' + elMin;
+            if (keyOptions.length === 0) {
+                opt.selected = true;
+            };
+    
+            keySelect.appendChild(opt);
+            keyOptions.push(opt);   
+        }
+
+        keySelect.addEventListener('change', (e) => {
+            // Re-send MIDI signal for currently loaded track with new shift
+            currentScale = e.target.value;
+            [2, 3].forEach(oct => sendMidiSignal(noteNumber(currentScale, oct)));
+        });
+
 
         setTrack1Vol(0.5);
         setTrack2Vol(0.1);
@@ -381,7 +439,7 @@
 
         // Volume controls for Track 1
         document.getElementById('track1-plus').addEventListener('click', () => {
-            setTrack1Vol(track1.volume + 0.1, 1);
+            setTrack1Vol(track1.volume + 0.01, 1);
         });
 
         document.getElementById('track1-minus').addEventListener('click', () => {
@@ -396,6 +454,24 @@
 
         document.getElementById('track2-minus').addEventListener('click', () => {
             setTrack2Vol(track2.volume - 0.01, 0);
+        });
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'p') {
+                setTrack1Vol(track1.volume + 0.01, 1);
+            }
+
+            if (e.key === 'o') {
+                setTrack1Vol(track1.volume - 0.01, 0);
+            }
+
+            if (e.key === 'l') {
+                setTrack2Vol(track2.volume + 0.01, 1);
+            }
+
+            if (e.key === 'k') {
+                setTrack2Vol(track2.volume - 0.01, 0);
+            }
         });
 
         let playingTrackIsrc = null;
@@ -415,8 +491,13 @@
             }
 
             trackName.textContent = data.name;
-            trackScale.textContent = data.scale;
+            trackScale.textContent = '';
             statusLabel.textContent = data.infos;
+            currentScale = data.scale;
+
+            keyOptions.forEach(el => {
+                el.selected = el.value === currentScale;
+            });
 
             const p = await fetch('/spotify_play');
             await p.json();
@@ -432,7 +513,7 @@
             if (midiDevice) {
                 [2, 3].forEach(oct => {
                     const note = noteNumber(data.scale, oct);
-                    sendMidiSignal(note)
+                    sendMidiSignal(note);
                 });
             }
 
@@ -441,12 +522,11 @@
 
 
         function noteNumber(name, octave) {
-            let keys = []
+            let keys = [];
             if (name.includes('major')) {
-                keys = ['C major', 'C# major', 'D major', 'D# major', 'E major', 'F major',
-                    'F# major', 'G major', 'G# major', 'A major', 'A# major', 'B major'];
+                keys = majorKeys;
             } else {
-                keys = ['A minor', 'A# minor', 'B minor', 'C minor', 'C# minor', 'D minor', 'D# minor', 'E minor', 'F minor', 'F# minor', 'G minor', 'G# minor'];
+                keys = minorKeys;
             }
 
             return keys.indexOf(name) + (octave + 2) * 12; // C4 = 60
