@@ -18,7 +18,7 @@ class PlaylistDownloader:
 
         output = []
         for t in tracks:
-            track = Track(spotify_data=t)
+            track = Track(isrc=t['isrc'], name=t['name'])
             output.append({
                             'isrc': track.isrc,
                             'name': track.name,
@@ -41,7 +41,7 @@ class PlaylistDownloader:
                     PlaylistDownloader.tracks = playlist_tracks
 
                 for t in playlist_tracks:
-                    track = Track(spotify_data=t)
+                    track = Track(isrc=t['isrc'], name=t['name'])
                     if track.has_loaded_successfully():
                         continue
 

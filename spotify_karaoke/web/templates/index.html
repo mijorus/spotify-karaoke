@@ -494,9 +494,15 @@
             trackScale.textContent = '';
             statusLabel.textContent = data.infos;
             currentScale = data.scale;
+            
+            let currentMajorScale = currentScale
+            if (currentMajorScale.endsWith('minor')) {
+                currentScaleIdx = minorKeys.indexOf(currentScale)
+                currentMajorScale = majorKeys[currentScaleIdx]
+            }
 
-            keyOptions.forEach(el => {
-                el.selected = el.value === currentScale;
+            keyOptions.forEach((el, i) => {
+                el.selected = el.value === currentMajorScale;
             });
 
             const p = await fetch('/spotify_play');

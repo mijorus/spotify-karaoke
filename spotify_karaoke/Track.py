@@ -8,18 +8,15 @@ import subprocess
 import multiprocessing
 import numpy as np
 from typing import Optional
+import essentia.standard as es
 from spotify_karaoke.constants import tracks_dir, separated_tracks_dir, separated_tracks_subdir
 
 class Track():
     loading_process: Optional[multiprocessing.Process] = None
 
-    def __init__(self, isrc=None, spotify_data=None):
-        if isrc:
-            self.isrc = isrc
-
-        if spotify_data:
-            self.isrc = spotify_data['isrc']
-            self.name = spotify_data['name']
+    def __init__(self, isrc=None, name=None):
+        self.isrc = isrc
+        self.name = name
 
     def estimate_key_advanced(self):
         target_file = self.get_track_file_path()
@@ -71,6 +68,35 @@ class Track():
             key_idx = minor_correlations.index(max_minor)
             return f"{keys[key_idx]} minor"
 
+    def estimate_key_advanced_v2(self):
+        target_file = self.get_track_file_path()
+        # Load audio file
+        loader = es.MonoLoader(filename=target_file)
+        audio = loader()
+
+        # Run Spotify-style key extraction
+        key_extractor = es.KeyExtractor()
+        key, scale, strength = key_extractor(audio)
+
+        flat_to_sharp_map = {
+            "Db": "C#",
+            "Eb": "D#",
+            "Gb": "F#",
+            "Ab": "G#",
+            "Bb": "A#",
+            "Cb": "B",
+            "Fb": "E",
+        }
+        
+        if key in flat_to_sharp_map.keys():
+            key = flat_to_sharp_map[key]
+            
+        
+        print(f"Detected Key: {key} {scale}")
+        print(f"Confidence: {strength:.2f}")
+            
+        return f'{key} {scale}'
+
     def get_track_file_path(self):
         return os.path.join(tracks_dir, f'{self.isrc}.mp3')
     
@@ -93,7 +119,7 @@ class Track():
         config['track'] = {
             'isrc': self.isrc,
             'name': self.name,
-            'scale': self.estimate_key_advanced()
+            'scale': self.estimate_key_advanced_v2()
         }
 
         with open(os.path.join(self.get_track_config_path()), 'w+') as conf_file:
